@@ -35,102 +35,62 @@ let isCleanURLed = settings.get('isCleanURLed');
 
 const originalUrlMap = new Map();
 
-const applyCleanUrl = async (tab) => {
-  if (!tab || !tab.url?.startsWith('http')) return;
+const updateTabState = async (tab) => {
+  if (!tab?.id || !tab.url?.startsWith('http')) return;
 
-  const tabId = tab.id;
-  const currentUrl = tab.url;
+  const isEnabled = settings.get('isCleanURLed');
+  
+  const iconPath = isEnabled ? './images/toolbar-icon-on.svg' : './images/toolbar-icon.svg';
+  browser.action.setIcon({ path: iconPath, tabId: tab.id });
 
-  if (isCleanURLed) {
-    if (!originalUrlMap.has(tabId)) {
-      originalUrlMap.set(tabId, currentUrl);
+  if (isEnabled) {
+    if (!originalUrlMap.has(tab.id)) originalUrlMap.set(tab.id, tab.url);
+    const cleaned = getCleanUrl(tab.url, true);
+    if (cleaned && cleaned !== tab.url) {
+      sendMessageSafe(tab.id, { action: 'APPLY_CLEAN_URL', cleanedUrl: cleaned });
     }
-
-    const cleaned = getCleanUrl(currentUrl, true);
-
-    if (cleaned && cleaned !== currentUrl) {
-      try {
-        await browser.tabs.sendMessage(tabId, {
-          action: 'APPLY_CLEAN_URL',
-          cleanedUrl: cleaned
-        });
-      } catch (error) {
-        console.warn('[CleanURLExtension] Failed to send clean URL to content script:', error);
-      }
-    }
-
-  } else {
-    if (originalUrlMap.has(tabId)) {
-      const original = originalUrlMap.get(tabId);
-
-      if (original && original !== currentUrl) {
-        try {
-          await browser.tabs.sendMessage(tabId, {
-            action: 'RESTORE_ORIGINAL_URL',
-            originalUrl: original
-          });
-        } catch (error) {
-          console.warn('[CleanURLExtension] Failed to send restore URL to content script:', error);
-        }
-      }
-
-      originalUrlMap.delete(tabId);
-    }
+  } else if (originalUrlMap.has(tab.id)) {
+    const original = originalUrlMap.get(tab.id);
+    sendMessageSafe(tab.id, { action: 'RESTORE_ORIGINAL_URL', originalUrl: original });
+    originalUrlMap.delete(tab.id);
   }
 };
 
-const setAppIcon = async (tab) => {
-  const tabId = tab?.id;
-  const iconPath = isCleanURLed
-    ? './images/toolbar-icon-on.svg'
-    : './images/toolbar-icon.svg';
-
-  await browser.action.setIcon({ path: iconPath, tabId });
-};
-
-const updateAllTabIcons = async () => {
-  const tabs = await browser.tabs.query({});
-  for (const tab of tabs) {
-    if (tab.url?.startsWith('http')) {
-      setAppIcon(tab);
-    }
+/* Safely sends a message to a tab, ignoring errors caused by missing content scripts. */
+const sendMessageSafe = async (tabId, message) => {
+  try {
+    await browser.tabs.sendMessage(tabId, message);
+  } catch (error) {
+    // Ignore errors if the content script is not yet loaded or the tab is not accessible.
   }
 };
 
-browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete') {
-    setAppIcon(tab);
-    applyCleanUrl(tab);
-  }
+// Listeners - to avoid memory leak
+browser.tabs.onRemoved.addListener((tabId) => {
+  originalUrlMap.delete(tabId)
 });
-
-const processTab = async (tab) => {
-  if (!tab || !tab.id || !tab.url?.startsWith('http')) return;
-  await setAppIcon(tab);
-  await applyCleanUrl(tab);
-};
 
 browser.windows.onFocusChanged.addListener(async (windowId) => {
   if (windowId !== browser.windows.WINDOW_ID_NONE) {
     const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
-    if (activeTab) {
-      processTab(activeTab);
-    }
+    updateTabState(activeTab);
   }
 });
 
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener((message, sender) => {
   if (message.action === 'CONTENT_SCRIPT_READY') {
-    processTab(sender.tab);
+    updateTabState(sender.tab);
   }
 });
 
 browser.action.onClicked.addListener(async (tab) => {
-  isCleanURLed = !isCleanURLed;
-  await settings.set('isCleanURLed', isCleanURLed);
-
-  updateAllTabIcons();
-  processTab(tab);
+  const newState = !settings.get('isCleanURLed');
+  await settings.set('isCleanURLed', newState);
+  
+  const tabs = await browser.tabs.query({ url: '*://*/*' });
+  for (const t of tabs) {
+    updateTabState(t);
+  }
 });
 
 updateAllTabIcons();
