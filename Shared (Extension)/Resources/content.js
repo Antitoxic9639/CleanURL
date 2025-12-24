@@ -23,13 +23,5 @@
     }
   });
 
-  const initializeContent = () => {
-    browser.runtime.sendMessage({ action: 'CONTENT_SCRIPT_READY' });
-  };
-
-  if (document.readyState !== 'loading') {
-    initializeContent();
-  } else {
-    document.addEventListener('DOMContentLoaded', initializeContent, { once: true });
-  }
+  browser.runtime.sendMessage({ action: 'CONTENT_SCRIPT_READY' });
 })();
