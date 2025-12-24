@@ -97,14 +97,6 @@ const updateAllTabIcons = async () => {
   }
 };
 
-browser.action.onClicked.addListener(async (tab) => {
-  isCleanURLed = !isCleanURLed;
-  await settings.set('isCleanURLed', isCleanURLed);
-
-  updateAllTabIcons();
-  applyCleanUrl(tab);
-});
-
 browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete') {
     setAppIcon(tab);
@@ -112,6 +104,33 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   }
 });
 
-browser.tabs.onCreated.addListener((tab) => applyCleanUrl(tab));
+const processTab = async (tab) => {
+  if (!tab || !tab.id || !tab.url?.startsWith('http')) return;
+  await setAppIcon(tab);
+  await applyCleanUrl(tab);
+};
+
+browser.windows.onFocusChanged.addListener(async (windowId) => {
+  if (windowId !== browser.windows.WINDOW_ID_NONE) {
+    const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
+    if (activeTab) {
+      processTab(activeTab);
+    }
+  }
+});
+
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'CONTENT_SCRIPT_READY') {
+    processTab(sender.tab);
+  }
+});
+
+browser.action.onClicked.addListener(async (tab) => {
+  isCleanURLed = !isCleanURLed;
+  await settings.set('isCleanURLed', isCleanURLed);
+
+  updateAllTabIcons();
+  processTab(tab);
+});
 
 updateAllTabIcons();
