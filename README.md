@@ -22,6 +22,10 @@ To uninstall the extension, similarly to the installation process, toggle the ex
 
 ## Version History
 
+### 1.0.1 - 2025-12-30
+
+- Improved stability when opening links from other apps
+
 ### 1.0 - 2025-12-04
 
 - Initial release with basic features
@@ -49,5 +53,6 @@ You can reach me via [email](mailto:hkitago@icloud.com?subject=Support%20for%20C
 
 - [Get extensions to customize Safari on iPhone - Apple Support](https://support.apple.com/guide/iphone/iphab0432bf6/18.0/ios/18.0)
 - [Get extensions to customize Safari on Mac - Apple Support](https://support.apple.com/guide/safari/get-extensions-sfri32508/mac)
+- [Use Safari extensions on your Mac – Apple Support](https://support.apple.com/102343)
 - Privacy Policy Page: [Privacy Policy – hkitago software dev](https://hkitago.com/wpautoterms/privacy-policy/)
 - Support Page: [hkitago/CleanURL](https://github.com/hkitago/CleanURL/)
