@@ -1,9 +1,3 @@
-//
-//  content.js
-//  CleanURL
-//
-//  Created by Hiroyuki KITAGO on 2025/12/02.
-//
 (() => {
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'APPLY_CLEAN_URL') {
@@ -22,6 +16,4 @@
       }
     }
   });
-
-  browser.runtime.sendMessage({ action: 'CONTENT_SCRIPT_READY' });
 })();

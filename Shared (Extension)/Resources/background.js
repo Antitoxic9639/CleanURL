@@ -30,11 +30,10 @@ const settings = (() => {
   return { load, get, set };
 })();
 
-await settings.load();
-let isCleanURLed = settings.get('isCleanURLed');
-
+/* State  */
 const originalUrlMap = new Map();
 
+/* Core logic */
 const updateTabState = async (tab) => {
   if (!tab?.id || !tab.url?.startsWith('http')) return;
 
@@ -56,7 +55,7 @@ const updateTabState = async (tab) => {
   }
 };
 
-/* Safely sends a message to a tab, ignoring errors caused by missing content scripts. */
+/* Messaging */
 const sendMessageSafe = async (tabId, message) => {
   try {
     await browser.tabs.sendMessage(tabId, message);
@@ -65,21 +64,17 @@ const sendMessageSafe = async (tabId, message) => {
   }
 };
 
-// Listeners - to avoid memory leak
-browser.tabs.onRemoved.addListener((tabId) => {
-  originalUrlMap.delete(tabId)
+/* Event listeners */
+browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url?.startsWith('http')) {
+    updateTabState(tab);
+  }
 });
 
 browser.windows.onFocusChanged.addListener(async (windowId) => {
   if (windowId !== browser.windows.WINDOW_ID_NONE) {
     const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
     updateTabState(activeTab);
-  }
-});
-
-browser.runtime.onMessage.addListener((message, sender) => {
-  if (message.action === 'CONTENT_SCRIPT_READY') {
-    updateTabState(sender.tab);
   }
 });
 
@@ -93,4 +88,9 @@ browser.action.onClicked.addListener(async (tab) => {
   }
 });
 
-updateAllTabIcons();
+browser.tabs.onRemoved.addListener((tabId) => {
+  originalUrlMap.delete(tabId)
+});
+
+/* Init */
+await settings.load();
