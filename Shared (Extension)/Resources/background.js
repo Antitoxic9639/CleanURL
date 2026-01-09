@@ -1,12 +1,10 @@
-import { getCleanUrl } from './cleanurl.js';
-
 /* Messaging */
 const sendMessageSafe = async (tabId, message) => {
   try {
     await browser.tabs.sendMessage(tabId, message);
   } catch (error) {
     // Ignore errors if the content script is not yet loaded or the tab is not accessible.
-    console.warn('[CleanURLExtension] Failed to load content.js:', error);
+    console.warn('[CleanURLExtension] Failed to send message to content.js:', error);
   }
 };
 
@@ -55,25 +53,72 @@ const settings = (() => {
   return { load, get, set };
 })();
 
-const updateToolbarIcon = async (tabId) => {
-  const iconPath = await settings.get('isCleanURLed') ? './images/toolbar-icon-on.svg' : './images/toolbar-icon.svg';
-  if (!tabId) {
-    const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
-    tabId = activeTab.id;
+// Icon Handlings
+const activeTabs = new Set();
+
+const getAllTabIds = async () => {
+  try {
+    const tabs = await browser.tabs.query({});
+    tabs.forEach(tab => activeTabs.add(tab.id));
+  } catch (error) {
+    console.error('[CleanURLExtension] Failed to initialize tabs:', error);
   }
+};
+
+const setIconForAllTabs = async (iconPath) => {
+  if (activeTabs.size === 0) {
+    await getAllTabIds();
+  }
+  
+  const promises = Array.from(activeTabs).map(async (tabId) => {
+    try {
+      await browser.action.setIcon({
+        path: iconPath,
+        tabId: tabId
+      });
+    } catch (error) {
+      console.warn(`[CleanURLExtension] Failed to set icon for tab ${tabId}:`, error);
+      activeTabs.delete(tabId);
+    }
+  });
+  
+  await Promise.all(promises);
+};
+
+const updateToolbarIcon = async (tabId = null, iconState) => {
+  const newIconState = iconState ?? await settings.get('isCleanURLed');
+  const iconPath = newIconState ? './images/toolbar-icon-on.svg' : './images/toolbar-icon.svg';
+
+  if (tabId === null) {
+    setIconForAllTabs(iconPath);
+  } else {
+    browser.action.setIcon({ path: iconPath, tabId: tabId });
+  }
+
   browser.action.setIcon({ path: iconPath, tabId: tabId });
+  console.log('updateToolbarIcon', tabId);
 };
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete') {
-    updateToolbarIcon(tab.id);
-  }
+  activeTabs.add(tab.id);
+
+  if (!changeInfo.url) return;
+  updateToolbarIcon(tab.id, settings.get('isCleanURLed'));
 });
 
-browser.tabs.onActivated.addListener(async (activeInfo) => {
-  updateToolbarIcon(activeInfo.tabId);
+browser.tabs.onCreated.addListener((tab) => {
+  // Prevent duplicate event handling for setIcon
+  if (tab.index === 0) return; // for itself
+  if (Number.isNaN(tab.index)) return; // for iOS/iPadOS
+
+  updateToolbarIcon(tab.id, settings.get('isCleanURLed'));
 });
 
+browser.tabs.onRemoved.addListener((tabId) => {
+  activeTabs.delete(tabId);
+});
+
+// Get Message Listeners
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Get current config
   if (message.type === 'GET_CURRENT_CONFIG') {
@@ -87,15 +132,15 @@ browser.windows.onFocusChanged.addListener(async (windowId) => {
 
   const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
   sendMessageSafe(activeTab.id, { type: 'CONFIG_UPDATED', config: settings.get() });
-  //  updateTabState(activeTab);
-  updateToolbarIcon(activeTab.id);
+
+  updateToolbarIcon(activeTab.id, settings.get('isCleanURLed'));
 });
 
 browser.action.onClicked.addListener(async (tab) => {
   const newState = !settings.get('isCleanURLed');
   await settings.set('isCleanURLed', newState);
 
-  updateToolbarIcon(tab.id);
+  updateToolbarIcon(tab.id, settings.get('isCleanURLed'));
 });
 
 /* Init */
