@@ -1,19 +1,175 @@
 (() => {
-  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'APPLY_CLEAN_URL') {
-      const newUrl = message.cleanedUrl;
+  // Pattern-based removal (Prefixes/Patterns)
+  const removeParamPatterns = [
+    /^utm/i,
+    /^ga_/i,
+    /^gad_/i,
+    /^gcl_/i,
+    /^ep[._]/i,
+    /^fb_/i,
+    /^twclid/i,
+    /^twitter_/i,
+    /^li_/i,
+    /^rdt_/i,
+    /^pf_rd_/i,
+    /^pd_rd_/i,
+    /^shop(ify)?_/i,
+    /^cart_/i,
+    /^checkout_/i,
+    /^ref/i,        // Covers ref, ref_, refRID
+    /^hs_/i,
+    /^hsa_/i,
+    /^mc_/i,
+    /^kl_/i,
+    /^pi_/i,
+    /^mkt_/i,
+    /^bd_/i,
+    /^hm/i,
+    /^naver_/i,
+    /^yj_/i,
+    /^tc_/i,
+    /^ys_/i,
+    /^ms_/i,
+    /^mp_/i,
+    /^amp_/i,
+    /^sp_/i,
+    /^hp_/i,
+    /^gtm_/i,
+    /^consent_/i,
+    /^gdpr_/i,
+    /^ccpa_/i,
+    /^cookie_/i,
+    /^cpt_/i,
+    /^aff_/i,
+    /^mv/i,
+    /^trc_/i,       // Taboola
+    /^s_/i,         // Adobe/Marketing (s_kwcid, etc.)
+    /^nft_/i,
+    /^dapp_/i,
+    /^beacon_/i,
+    /^ltm_/i,
+    /^social_/i,    // social_id, social_source, etc.
+    /^share_/i,     // share_token, share_ref
+    /^offer_/i,      // offer_id, offer_code
+  ];
+
+  // Exact match removal (Specific keys)
+  const removeExactParams = [
+    '_gl', '_gac', '_gid', 'gclid', 'gclsrc', 'dclid', 'wbraid', 'gbraid',
+    'fbclid', 'tweetid', 'reddit_ad_id', 'reddit_campaign_id', 'tag',
+    'linkCode', 'linkId', 'creativeASIN', 'ascsubtag', '_encoding',
+    'qid', 'sr', 'keywords', 'sprefix', 'crid', 'dchild', 'dib', 'dib_tag',
+    '_hsenc', '_hsmi', 'mkt_tok', 'yjr', 'yjad', 'yjcmp', 'adtag', 'yclid',
+    '_openstat', 'msclkid', 'mixpanel_id', 'amplitude_id', 'snowplow_id',
+    'heap_id', 'tracking_consent', 'cid', 'rid', 'adid', 'argument',
+    'free4', 'dmai', 'sub_rt', 'spid', 'prid', 'aspid', 'mid', 'scadid',
+    'source', 'dv', 'date', 'ctg', 'fr', 'sk', 'afSmartRedirect',
+    'gatewayAdapt', 'sdid', 'social_share', 'referrer', 'ie',
+    'ecid', 'smid', 'content-id', 'camp', 'creative', // Added back from original
+    'promo', 'discount', 'coupon' // Added back from original
+  ];
+
+  const getCleanUrl = (url) => {
+    try {
+      const urlObj = new URL(url);
+      const params = urlObj.searchParams;
+      const allKeys = Array.from(params.keys());
       
-      if (newUrl && newUrl !== location.href) {
-        history.replaceState(null, '', newUrl);
+      for (const key of allKeys) {
+        if (removeExactParams.includes(key) ||
+            removeParamPatterns.some(pattern => pattern.test(key))) {
+          params.delete(key);
+        }
       }
+      
+      return urlObj.toString();
+    } catch (error) {
+      console.error('[CleanURLExtension] Invalid URL:', error);
+      return url;
     }
-    
-    if (message.action === 'RESTORE_ORIGINAL_URL') {
-      const original = message.originalUrl;
-      
-      if (original && original !== location.href) {
-        history.replaceState(null, '', original);
+  };
+
+  const DEFAULT_SETTINGS = {
+    isCleanURLed: false,
+  };
+
+  let config = { ...DEFAULT_SETTINGS };
+  const originalUrl = window.location.href;
+
+  const requestConfigFromBackground = async () => {
+    try {
+      const response = await browser.runtime.sendMessage({
+        type: 'GET_CURRENT_CONFIG'
+      });
+
+      if (response?.config) {
+        applyConfig(response.config);
       }
+    } catch (error) {
+      console.error('[CleanURLExtension] Failed to get config from background:', error);
+    }
+  };
+
+  const applyConfig = (config) => {
+    if (config.isCleanURLed) {
+      const cleanedUrl = getCleanUrl(window.location.href);
+      if (cleanedUrl === window.location.href) return;
+
+      history.replaceState(null, '', cleanedUrl);
+      console.log('[CleanURLExtension] APPLY_CLEAN_URL', cleanedUrl);
+    } else {
+      history.replaceState(null, '', originalUrl);
+      console.log('[CleanURLExtension] RESTORE_ORIGINAL_URL', originalUrl);
+    }
+  };
+
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState !== 'visible') return;
+
+    try {
+      const stored = await browser.storage.local.get('settings');
+      const freshConfig = { ...DEFAULT_SETTINGS, ...stored.settings };
+      applyConfig(freshConfig);
+    } catch (error) {
+      console.warn('[CleanURLExtension] Storage refresh failed, fallback to background');
+      requestConfigFromBackground();
     }
   });
+
+  // ========================================
+  // Config update: Receive from background
+  // ========================================
+  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'CONFIG_UPDATED') {
+      applyConfig(message.config);
+
+      sendResponse({ success: true });
+    }
+    
+    return true;
+  });
+
+  // ========================================
+  // Initialization: Load config from storage
+  // ========================================
+  (async () => {
+    try {
+      const stored = await browser.storage.local.get('settings');
+      config = { ...DEFAULT_SETTINGS, ...stored.settings };
+    } catch (error) {
+      console.error('[CleanURLExtension] Failed to load config:', error);
+      requestConfigFromBackground();
+    }
+  })();
+
+  const initializeContent = () => {
+    applyConfig(config);
+    console.log('[CleanURLExtension] initializeContent:', config);
+  };
+
+  if (document.readyState !== 'loading') {
+    initializeContent();
+  } else {
+    document.addEventListener('DOMContentLoaded', initializeContent, { once: true });
+  }
 })();
