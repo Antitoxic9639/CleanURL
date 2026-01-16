@@ -116,10 +116,8 @@
       if (cleanedUrl === window.location.href) return;
 
       history.replaceState(null, '', cleanedUrl);
-      console.log('[CleanURLExtension] APPLY_CLEAN_URL', cleanedUrl);
     } else {
       history.replaceState(null, '', originalUrl);
-      console.log('[CleanURLExtension] RESTORE_ORIGINAL_URL', originalUrl);
     }
   };
 
@@ -164,7 +162,6 @@
 
   const initializeContent = () => {
     applyConfig(config);
-    console.log('[CleanURLExtension] initializeContent:', config);
   };
 
   if (document.readyState !== 'loading') {

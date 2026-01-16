@@ -96,14 +96,14 @@ const updateToolbarIcon = async (tabId = null, iconState) => {
   }
 
   browser.action.setIcon({ path: iconPath, tabId: tabId });
-  console.log('updateToolbarIcon', tabId);
 };
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   activeTabs.add(tab.id);
 
-  if (!changeInfo.url) return;
-  updateToolbarIcon(tab.id, settings.get('isCleanURLed'));
+  if (changeInfo.status === 'complete') {
+    updateToolbarIcon(tab.id, settings.get('isCleanURLed'));
+  }
 });
 
 browser.tabs.onCreated.addListener((tab) => {
@@ -120,7 +120,6 @@ browser.tabs.onRemoved.addListener((tabId) => {
 
 // Get Message Listeners
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Get current config
   if (message.type === 'GET_CURRENT_CONFIG') {
     sendResponse({ config: settings.get() });
     return true;
