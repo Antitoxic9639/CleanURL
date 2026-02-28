@@ -1,8 +1,8 @@
 # <img src="https://raw.githubusercontent.com/hkitago/CleanURL/refs/heads/main/Shared%20(Extension)/Resources/images/icon.svg" height="36" valign="bottom"/> CleanURL for Safari Extension
 
-This Safari extension automatically removes tracking parameters and cleans URLs as you browse, making links shorter and more readable. Share cleaner links without exposing personal data embedded in URLs.
+This Safari extension automatically removes tracking parameters and cleans URLs as you browse, producing shorter, shareable links while keeping the personal data that platforms embed quietly out of the picture. No editing, no holding down the delete key, no wondering which part of a long address is safe to share. True to the delete key its icon depicts, the list of parameters is fully customizable. Add what matters to you, remove what does not, and fewer trackers slip through by default. The extension adapts to how you actually browse, not the other way around.
 
-Perfect for privacy-conscious users who frequently share links on social media, messaging apps, or email. Whether you're a content creator, researcher, or everyday user, CleanURL helps you share information more privately and professionally.
+Designed for anyone who shares links regularly and wants them to look exactly like what they are. Whether you are citing a source, sending a link to a friend, or dropping a URL into a newsletter, this extension handles the cleanup so you do not have to think about it. Privacy here is not a setting you configure once. It is something that happens in the background, every time.
 
 ## Installation & Uninstallation
 
@@ -17,24 +17,35 @@ To uninstall the extension, similarly to the installation process, toggle the ex
 
 ## Usage
 
-1. Click the extension icon in the browser toolbar to activate URL cleaning.
-2. If you want to disable URLs cleaning or if the web page doesn't look right, simply click the icon again to revert the changes.
+1. Enable or Disable Cleaning
 
-## Version History
+Click the extension icon in the browser toolbar to open the popover menu. Use the toggle switch to turn URL cleaning on or off. If a webpage doesn't look right, simply turn the toggle off to revert to the original URL.
 
-### 1.0.2 - 2026-01-11
+2. Add Custom Parameters
 
-- Improved overall performance and stability for a smoother experience
-- Fixed an issue affecting toolbar icon display consistency
-- Updated localized content to improve readability across supported regions
+If you notice tracking parameters slipping through, you can block them on the spot via the popover. Before clicking Add Parameters, you can use the "Limit to current site" toggle:
 
-### 1.0.1 - 2025-12-30
+- Off: The parameter will be cleaned on all websites you visit.
+- On: The parameter will only be cleaned when you are on the current website.
 
-- Improved stability when opening links from other apps
+> [!IMPORTANT]
+> In shopping sites or modern web apps (SPAs), some parameters are essential for features like filtering, searching, or navigation. Avoid adding parameters that seem necessary for the site’s functionality.
 
-### 1.0 - 2025-12-04
+3. Manage and Edit Parameters
 
-- Initial release with basic features
+To review or remove your settings, click Edit Parameters in the popover. This opens a dedicated page where you can manage your custom list:
+
+- Use the toggles to include or exclude parameters from cleaning.
+- Changes are saved automatically; you can close the page anytime.
+
+> [!NOTE]
+> Matching colors indicate parameters defined in both global and site-specific scopes, where your global settings will take priority.
+
+## Latest Version
+
+### [26.1] - 2026-03-01
+
+- Added a dedicated management screen, allowing for easier customization of cleaning rules to reduce trackers slipping through
 
 ## Compatibility
 
