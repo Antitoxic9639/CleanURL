@@ -52,7 +52,7 @@
           "position" : {
             "scale" : 1,
             "translation-in-points" : [
-              53.993582645970946,
+              30.993582645970946,
               1.2346298908801145
             ]
           }
@@ -63,7 +63,14 @@
           },
           "glass" : true,
           "image-name" : "icon.svg",
-          "name" : "icon"
+          "name" : "icon",
+          "position" : {
+            "scale" : 0.98,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
         }
       ],
       "lighting" : "individual",
