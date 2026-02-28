@@ -4,7 +4,7 @@
 
     "name": "__MSG_extension_name__",
     "description": "__MSG_extension_description__",
-    "version": "1.0.2",
+    "version": "26.1",
 
     "icons": {
       "48": "images/icon.svg",
@@ -24,7 +24,13 @@
     }],
 
     "action": {
+        "default_popup": "popup.html",
         "default_icon": "images/toolbar-icon.svg"
+    },
+
+    "options_ui": {
+      "page": "editparams.html",
+      "browser_style": false
     },
 
     "permissions": [ "activeTab", "tabs", "storage" ]

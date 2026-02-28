@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="popup.css">
+    <script type="module" src="popup.js"></script>
+</head>
+<body>
+    <section>
+      <ul>
+        <li><div><label for="isCleanURLed">Enable</label><input type="checkbox" id="isCleanURLed" class="toggle-disabled"><span class="toggle"></span></div></li>
+      </ul>
+    </section>
+    <section>
+      <h2 id="paramListLabel">Parameters to clean</h2>
+      <ul id="paramList"></ul>
+      <ul id="paramListOption">
+        <li><div><label for="addParamOptLimit">Limit to current site</label><input type="checkbox" id="addParamOptLimit" class="toggle-disabled"><span class="toggle"></span></div></li>
+        <li style="display:none"><div><label for="addParamOptSharing">Share across devices</label><input type="checkbox" id="addParamOptSharing" class="toggle-disabled"><span class="toggle"></span></div></li>
+      </ul>
+    </section>
+    <section id="actionBtns">
+      <div><button type="button" id="addParamBtn">Add parameters</button></div>
+      <div><button type="button" id="editParamBtn">Edit parameters</button></div>
+    </section>
+</body>
+</html>

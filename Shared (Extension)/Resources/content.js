@@ -69,19 +69,75 @@
     'promo', 'discount', 'coupon' // Added back from original
   ];
 
-  const getCleanUrl = (url) => {
+  const normalizeParamKeys = (paramKeys) => {
+    const normalized = { general: [] };
+    if (!paramKeys || typeof paramKeys !== 'object') {
+      return normalized;
+    }
+
+    Object.entries(paramKeys).forEach(([scope, values]) => {
+      if (!Array.isArray(values)) {
+        return;
+      }
+
+      const normalizedScope = scope === 'general' ? 'general' : scope.trim().toLowerCase();
+      if (!normalizedScope) {
+        return;
+      }
+
+      const unique = [];
+      const seen = new Set();
+      values.forEach((value) => {
+        if (typeof value !== 'string') {
+          return;
+        }
+
+        const cleanedValue = value.trim();
+        if (!cleanedValue || seen.has(cleanedValue)) {
+          return;
+        }
+
+        seen.add(cleanedValue);
+        unique.push(cleanedValue);
+      });
+
+      if (unique.length > 0 || normalizedScope === 'general') {
+        normalized[normalizedScope] = unique;
+      }
+    });
+
+    if (!Array.isArray(normalized.general)) {
+      normalized.general = [];
+    }
+
+    return normalized;
+  };
+
+  const getCustomParams = (paramKeys, hostname) => {
+    const normalizedParamKeys = normalizeParamKeys(paramKeys);
+    const normalizedHostname = hostname.trim().toLowerCase();
+    const targetHostnameParams = normalizedHostname && Array.isArray(normalizedParamKeys[normalizedHostname])
+      ? normalizedParamKeys[normalizedHostname]
+      : [];
+
+    return new Set([...normalizedParamKeys.general, ...targetHostnameParams]);
+  };
+
+  const getCleanUrl = (url, currentConfig) => {
     try {
       const urlObj = new URL(url);
       const params = urlObj.searchParams;
       const allKeys = Array.from(params.keys());
+      const customParams = getCustomParams(currentConfig?.paramKeys, urlObj.hostname);
       
       for (const key of allKeys) {
         if (removeExactParams.includes(key) ||
-            removeParamPatterns.some(pattern => pattern.test(key))) {
+            removeParamPatterns.some((pattern) => pattern.test(key)) ||
+            customParams.has(key)) {
           params.delete(key);
         }
       }
-      
+
       return urlObj.toString();
     } catch (error) {
       console.error('[CleanURLExtension] Invalid URL:', error);
@@ -91,10 +147,36 @@
 
   const DEFAULT_SETTINGS = {
     isCleanURLed: false,
+    addParamOptLimit: false,
+    addParamOptSharing: false,
   };
 
-  let config = { ...DEFAULT_SETTINGS };
-  const originalUrl = window.location.href;
+  const normalizeConfig = (nextConfig) => {
+    const source = (nextConfig && typeof nextConfig === 'object') ? nextConfig : {};
+    const { paramKeys, ...settingsWithoutParamKeys } = source;
+
+    return {
+      ...DEFAULT_SETTINGS,
+      ...settingsWithoutParamKeys,
+      paramKeys: normalizeParamKeys(paramKeys),
+    };
+  };
+
+  const loadConfigFromStorage = async () => {
+    const stored = await browser.storage.local.get(['settings', 'paramKeys']);
+    const storedSettings = (stored.settings && typeof stored.settings === 'object')
+      ? stored.settings
+      : {};
+
+    return {
+      ...storedSettings,
+      paramKeys: stored.paramKeys,
+    };
+  };
+
+  let config = normalizeConfig({});
+  let cleanedUrl = getCleanUrl(window.location.href, config);
+  let lastUncleanUrl = window.location.href;
 
   const requestConfigFromBackground = async () => {
     try {
@@ -110,26 +192,39 @@
     }
   };
 
-  const applyConfig = (config) => {
-    if (config.isCleanURLed) {
-      const cleanedUrl = getCleanUrl(window.location.href);
-      if (cleanedUrl === window.location.href) return;
+  const updateIconState = () => {
+    browser.runtime.sendMessage({ action: 'UPDATE_ICON' });
+  };
 
-      history.replaceState(null, '', cleanedUrl);
+  const applyConfig = (nextConfig) => {
+    config = normalizeConfig(nextConfig);
+    const currentUrl = window.location.href;
+
+    if (config.isCleanURLed) {
+      cleanedUrl = getCleanUrl(currentUrl, config);
+      if (cleanedUrl !== currentUrl) {
+        lastUncleanUrl = currentUrl;
+        history.replaceState(null, '', cleanedUrl);
+      }
     } else {
-      history.replaceState(null, '', originalUrl);
+      const expectedCleanUrl = getCleanUrl(lastUncleanUrl, config);
+      if (currentUrl === expectedCleanUrl && currentUrl !== lastUncleanUrl) {
+        history.replaceState(null, '', lastUncleanUrl);
+      } else {
+        lastUncleanUrl = currentUrl;
+      }
     }
+    updateIconState();
   };
 
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState !== 'visible') return;
 
     try {
-      const stored = await browser.storage.local.get('settings');
-      const freshConfig = { ...DEFAULT_SETTINGS, ...stored.settings };
+      const freshConfig = normalizeConfig(await loadConfigFromStorage());
       applyConfig(freshConfig);
     } catch (error) {
-      console.warn('[CleanURLExtension] Storage refresh failed, fallback to background');
+      console.warn('[CleanURLExtension] Failed to refresh storage, fallback to background:', error);
       requestConfigFromBackground();
     }
   });
@@ -140,28 +235,18 @@
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'CONFIG_UPDATED') {
       applyConfig(message.config);
-
-      sendResponse({ success: true });
     }
-    
-    return true;
+    return;
   });
 
-  // ========================================
-  // Initialization: Load config from storage
-  // ========================================
-  (async () => {
+  const initializeContent = async () => {
     try {
-      const stored = await browser.storage.local.get('settings');
-      config = { ...DEFAULT_SETTINGS, ...stored.settings };
+      applyConfig(await loadConfigFromStorage());
     } catch (error) {
       console.error('[CleanURLExtension] Failed to load config:', error);
+      applyConfig(config);
       requestConfigFromBackground();
     }
-  })();
-
-  const initializeContent = () => {
-    applyConfig(config);
   };
 
   if (document.readyState !== 'loading') {

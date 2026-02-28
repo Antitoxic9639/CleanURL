@@ -1,0 +1,223 @@
+:root {
+  color-scheme: light dark;
+}
+
+* {
+  -webkit-tap-highlight-color:rgb(0 0 0/0);
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+}
+
+html {
+  font: -apple-system-body;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin: 0;
+  font: -apple-system-short-body;
+}
+
+header,
+main,
+footer {
+  width: 100%px;
+  display: flex;
+  justify-content: center;
+}
+
+header > div,
+main > div,
+footer > div {
+  width: 100%;
+  max-width: 1024px;
+  margin: 0 15px;
+}
+
+header {
+  border-bottom: 1px solid rgb(210 210 215);
+}
+
+header > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  flex-direction: row-reverse;
+}
+
+header > div > h1#editParamTitle {
+  white-space: nowrap;
+  flex: 1;
+}
+
+main {
+  flex: 1;
+}
+
+dl#editParamList > dt > h2 {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+dl#editParamList > dd {
+  margin: 0;
+}
+
+dl#editParamList > dd > ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 7px;
+}
+
+dl#editParamList > dd > ul > li {
+  overflow: hidden;
+}
+
+dl#editParamList > dd > ul > li > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid rgb(210 210 215/50%);
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+dl#editParamList > dd > ul > li.is-duplicated > div {
+  border-color: var(--dup-color);
+}
+
+dl#editParamList > dd > ul > li > div > label {
+  cursor: pointer;
+  line-height: 1;
+}
+
+dl#editParamList > hr {
+  margin: 20px 0;
+  border: none;
+  height: 1px;
+  background-color: rgb(210 210 215);
+}
+
+input[type='checkbox'] {
+  display: none;
+}
+
+.checkmark {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-image: url(./images/checkmark-off.svg);
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: auto 100%;
+  cursor: pointer;
+}
+
+.os-macos .checkmark {
+  width: 14px;
+  height: 14px;
+}
+
+input[type='checkbox']:checked ~ .checkmark {
+  background-image: url(./images/checkmark-on.svg);
+}
+
+footer {
+  background-color: rgb(245, 245, 247);
+}
+
+footer > div {
+  margin: 10px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.os-ios footer > div,
+.os-ipados footer > div {
+  width: 90%;
+}
+
+footer > div > p#editParamHelpText {
+  color: rgb(110, 110, 115);
+  font-size: 0.9rem;
+  display: inline-block;
+}
+
+button {
+  -webkit-appearance: none;
+  font: inherit;
+  color: white;
+}
+
+.os-ios button,
+.os-ipados button {
+  border-radius: 21px;
+  padding: 10px 15px;
+  width: auto;
+  border-width: 0;
+}
+
+.os-ios button#editParamCloseBtn,
+.os-ipados button#editParamCloseBtn {
+  background-color: rgb(0 136 254);
+}
+
+.os-ios button#editParamCloseBtn.active,
+.os-ipados button#editParamCloseBtn.active {
+  background-color: rgb(209 209 213);
+}
+
+.os-macos button {
+  background-color: rgb(52 120 246);
+  cursor: pointer;
+  padding: 3px 15px;
+  border-radius: 6px;
+  width: auto;
+  margin: 0;
+  border-width: 0;
+  overflow: hidden;
+}
+
+.os-macos button#editParamBtn {
+  background: none;
+  cursor: pointer;
+  padding: 3px 15px;
+  width: auto;
+  margin: 0;
+  border-width: 0;
+  overflow: hidden;
+  color: rgb(70 146 254);
+}
+
+.os-macos button:active,
+.os-macos button:focus {
+  background-color: rgb(47 108 222);
+}
+
+.os-macos button#editParamBtn:active,
+.os-macos button#editParamBtn:focus {
+  opacity: 0.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .os-ios button#editParamCloseBtn.active,
+  .os-ipados button#editParamCloseBtn.active {
+    background-color: rgb(58 58 60);
+  }
+}
