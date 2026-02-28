@@ -1,14 +1,16 @@
 # Changelog
 
-## [1.0.2] - 2025-11-10
+## [1.0.2] - 2026-01-11
 
-- Fixed popup menu sizing issues that occurred on certain devices
-- Additional improvements to appearance and refined icons for v26 themes
+- Improved overall performance and stability for a smoother experience
+- Fixed an issue affecting toolbar icon display consistency
+- Updated localized content to improve readability across supported regions
 
-## [1.0.1] - 2025-10-09
+## [1.0.1] - 2025-12-30
 
-- Improved RTL text handling and resolved display issues
+- Improved stability when opening links from other apps
 
-## [1.0] - 2025-10-01
+## [1.0] - 2025-12-04
 
 - Initial release with basic features
+
