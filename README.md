@@ -47,6 +47,8 @@ To review or remove your settings, click Edit Parameters in the popover. This op
 
 - Added a dedicated management screen, allowing for easier customization of cleaning rules to reduce trackers slipping through
 
+Previous Updates: [CHANGELOG.md](./CHANGELOG.md)
+
 ## Compatibility
 
 - iOS/iPadOS 16.6+
