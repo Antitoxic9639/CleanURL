@@ -430,15 +430,9 @@ function openSettings() {
     webkit.messageHandlers.controller.postMessage("open-settings");
 }
 
-document.querySelector("button.open-preferences").addEventListener("click", openPreferences);
-document.querySelector("button.open-settings").addEventListener("click", openSettings);
-
 function openSupport() {
     webkit.messageHandlers.controller.postMessage("open-support");
 }
-
-const btn = document.querySelector("button.support-button");
-btn.addEventListener("click", openSupport);
 
 document.querySelectorAll('button').forEach(btn => {
   btn.addEventListener('touchstart', () => btn.classList.add('active'), { passive: true });
@@ -454,4 +448,20 @@ if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) {
   document.querySelectorAll('p').forEach(pNode => {
     pNode.style.width = '70vw';
   });
+}
+
+const initializeScript = async () => {
+  try {
+    document.querySelector("button.open-preferences").addEventListener("click", openPreferences);
+    document.querySelector("button.open-settings").addEventListener("click", openSettings);
+    document.querySelector("button.support-button").addEventListener("click", openSupport);
+  } catch (error) {
+    console.error('[CleanURLExtension] Fail to initialize:', error);
+  }
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeScript, { once: true });
+} else {
+  initializeScript();
 }
