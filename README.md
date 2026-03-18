@@ -21,6 +21,9 @@ To uninstall the extension, similarly to the installation process, toggle the ex
 
 Click the extension icon in the browser toolbar to open the popover menu. Use the toggle switch to turn URL cleaning on or off. If a webpage doesn't look right, simply turn the toggle off to revert to the original URL.
 
+- Off: <code><img src="https://raw.githubusercontent.com/hkitago/CleanURL/refs/heads/main/Shared%20(Extension)/Resources/images/toolbar-icon.svg" height="24" valign="bottom"/></code>
+- On: <code><img src="https://raw.githubusercontent.com/hkitago/CleanURL/refs/heads/main/Shared%20(Extension)/Resources/images/toolbar-icon-on.svg" height="24" valign="bottom"/></code>
+
 2. Add Custom Parameters
 
 If you notice tracking parameters slipping through, you can block them on the spot via the popover. Before clicking Add Parameters, you can use the "Limit to current site" toggle:
