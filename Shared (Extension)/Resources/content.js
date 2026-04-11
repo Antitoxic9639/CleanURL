@@ -177,6 +177,7 @@
   let config = normalizeConfig({});
   let cleanedUrl = getCleanUrl(window.location.href, config);
   let lastUncleanUrl = window.location.href;
+  let hasRedirected = false;
 
   const requestConfigFromBackground = async () => {
     try {
@@ -204,6 +205,13 @@
       cleanedUrl = getCleanUrl(currentUrl, config);
       if (cleanedUrl !== currentUrl) {
         lastUncleanUrl = currentUrl;
+        // First time we see a dirty URL: actually navigate to the clean URL.
+        // This ensures other extensions can open the clean URL directly.
+        if (!hasRedirected) {
+          hasRedirected = true;
+          window.location.replace(cleanedUrl);
+          return;
+        }
         history.replaceState(null, '', cleanedUrl);
       }
     } else {
@@ -240,9 +248,8 @@
   });
 
   const initializeContent = async () => {
-    requestConfigFromBackground(); // fast path: background has config in memory already
     try {
-      applyConfig(await loadConfigFromStorage()); // thorough path: full storage read
+      applyConfig(await loadConfigFromStorage());
     } catch (error) {
       console.error('[CleanURLExtension] Failed to load config:', error);
       applyConfig(config);
@@ -250,22 +257,11 @@
     }
   };
 
-  // ========================================
-  // SPA navigation: popstate + delayed re-checks
-  // ========================================
-  window.addEventListener('popstate', () => {
-    if (!config.isCleanURLed) return;
-    const currentUrl = window.location.href;
-    const cleaned = getCleanUrl(currentUrl, config);
-    if (cleaned !== currentUrl) {
-      lastUncleanUrl = currentUrl;
-      history.replaceState(null, '', cleaned);
-    }
-  });
 
+  // Fix some SPAs that load strangely, like YouTube, which only clears the params when reloaded but not on first load.
   // Re-check the URL a few times after page load.
   // Catches sites (e.g. YouTube) whose JS sets dirty params via
-  // pushState/replaceState AFTER our initial clean.
+  // Nasty but works for me :)
   const scheduleUrlRechecks = () => {
     [500, 1500, 3000, 6000].forEach((delay) => {
       setTimeout(() => {
