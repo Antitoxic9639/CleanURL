@@ -240,8 +240,9 @@
   });
 
   const initializeContent = async () => {
+    requestConfigFromBackground(); // fast path: background has config in memory already
     try {
-      applyConfig(await loadConfigFromStorage());
+      applyConfig(await loadConfigFromStorage()); // thorough path: full storage read
     } catch (error) {
       console.error('[CleanURLExtension] Failed to load config:', error);
       applyConfig(config);
@@ -249,9 +250,44 @@
     }
   };
 
+  // ========================================
+  // SPA navigation: popstate + delayed re-checks
+  // ========================================
+  window.addEventListener('popstate', () => {
+    if (!config.isCleanURLed) return;
+    const currentUrl = window.location.href;
+    const cleaned = getCleanUrl(currentUrl, config);
+    if (cleaned !== currentUrl) {
+      lastUncleanUrl = currentUrl;
+      history.replaceState(null, '', cleaned);
+    }
+  });
+
+  // Re-check the URL a few times after page load.
+  // Catches sites (e.g. YouTube) whose JS sets dirty params via
+  // pushState/replaceState AFTER our initial clean.
+  const scheduleUrlRechecks = () => {
+    [500, 1500, 3000, 6000].forEach((delay) => {
+      setTimeout(() => {
+        if (!config.isCleanURLed) return;
+        const currentUrl = window.location.href;
+        const cleaned = getCleanUrl(currentUrl, config);
+        if (cleaned !== currentUrl) {
+          lastUncleanUrl = currentUrl;
+          history.replaceState(null, '', cleaned);
+        }
+      }, delay);
+    });
+  };
+
+  const initAndWatch = async () => {
+    await initializeContent();
+    scheduleUrlRechecks();
+  };
+
   if (document.readyState !== 'loading') {
-    initializeContent();
+    initAndWatch();
   } else {
-    document.addEventListener('DOMContentLoaded', initializeContent, { once: true });
+    document.addEventListener('DOMContentLoaded', initAndWatch, { once: true });
   }
 })();
