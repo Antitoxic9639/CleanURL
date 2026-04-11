@@ -1,0 +1,77 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to build
+        required: true
+        default: main
+
+jobs:
+  build-ios-ipa:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Read app version
+        id: app_version
+        run: |
+          VERSION=$(xcodebuild \
+            -project CleanURL.xcodeproj \
+            -scheme "CleanURL (iOS)" \
+            -showBuildSettings \
+            | awk -F ' = ' '/MARKETING_VERSION/ {print $2; exit}')
+
+          BUILD_NUMBER=$(xcodebuild \
+            -project CleanURL.xcodeproj \
+            -scheme "CleanURL (iOS)" \
+            -showBuildSettings \
+            | awk -F ' = ' '/CURRENT_PROJECT_VERSION/ {print $2; exit}')
+
+          echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "APP_BUILD=$BUILD_NUMBER" >> "$GITHUB_ENV"
+          echo "app_version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "app_build=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Build iOS app
+        run: |
+          xcodebuild \
+            -project CleanURL.xcodeproj \
+            -scheme "CleanURL (iOS)" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package IPA
+        run: |
+          APP_PATH=$(find build -path "*Release-iphoneos/*.app" -maxdepth 6 | head -n 1)
+
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app found in build output"
+            find build -maxdepth 6 -type d
+            exit 1
+          fi
+
+          rm -rf Payload
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/CleanURL.app
+          /usr/bin/zip -r "CleanURL-${APP_VERSION}-${APP_BUILD}.ipa" Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CleanURL-${{ steps.app_version.outputs.app_version }}-${{ steps.app_version.outputs.app_build }}
+          path: CleanURL-${{ steps.app_version.outputs.app_version }}-${{ steps.app_version.outputs.app_build }}.ipa
+          if-no-files-found: error
